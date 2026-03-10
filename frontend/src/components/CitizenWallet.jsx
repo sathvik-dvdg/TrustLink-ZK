@@ -17,8 +17,8 @@ const CitizenWallet = () => {
     const fetchData = async () => {
         try {
             const [reqRes, ledgerRes] = await Promise.all([
-                fetch('http://localhost:8000/api/pending-requests'),
-                fetch('http://localhost:8000/api/ledger')
+                fetch('http://localhost:8000/api/pending-requests', 'https://trustlink-zk.onrender.com/api/pending-requests'),
+                fetch('http://localhost:8000/api/ledger', 'https://trustlink-zk.onrender.com/api/ledger')
             ]);
             const reqData = await reqRes.json();
             setRequests(reqData.requests || []);
@@ -77,7 +77,7 @@ const CitizenWallet = () => {
         });
         setTimeout(async () => {
             try {
-                const res = await fetch('http://localhost:8000/api/generate-proof', {
+                const res = await fetch('http://localhost:8000/api/generate-proof', 'https://trustlink-zk.onrender.com/api/generate-proof', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ request_id: activeRequest.id, consent_payload: consentSettings, is_malicious: isAttackMode })
@@ -93,7 +93,7 @@ const CitizenWallet = () => {
     const handleRevoke = async (txHash) => {
         setIsRevoking(txHash);
         try {
-            await fetch('http://localhost:8000/api/revoke-access', {
+            await fetch('http://localhost:8000/api/revoke-access', 'https://trustlink-zk.onrender.com/api/revoke-access', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tx_hash: txHash })

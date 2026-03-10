@@ -45,7 +45,7 @@ const GovernmentPortal = () => {
 
     const fetchLedger = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/ledger');
+            const res = await fetch('http://localhost:8000/api/ledger', 'https://trustlink-zk.onrender.com/api/ledger');
             const data = await res.json();
             const entries = data.ledger || [];
             setLedger(entries);
@@ -97,7 +97,7 @@ const GovernmentPortal = () => {
         if (!newRequest.action || newRequest.required_proofs.length === 0) return;
         setIsSubmitting(true);
         try {
-            await fetch('http://localhost:8000/api/request-verification', {
+            await fetch('http://localhost:8000/api/request-verification', 'https://trustlink-zk.onrender.com/api/request-verification', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newRequest)
@@ -111,7 +111,7 @@ const GovernmentPortal = () => {
 
     const handleSimulateAttack = async () => {
         try {
-            await fetch('http://localhost:8000/api/simulate-attack', { method: 'POST' });
+            await fetch('http://localhost:8000/api/simulate-attack', 'https://trustlink-zk.onrender.com/api/simulate-attack', { method: 'POST' });
             fetchLedger();
         } catch (err) { console.error("Failed to simulate attack", err); }
     };
