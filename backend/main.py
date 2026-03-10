@@ -10,13 +10,22 @@ import uuid
 
 app = FastAPI(title="GovTrust-Connect Backend Prototype")
 
-# CORS setup
+# CORS setup — list every origin that is allowed to call this API.
+# Wildcard origins ("*") cannot be used with allow_credentials=True,
+# and some browsers reject pre-flight responses with "*" when the
+# request includes a Content-Type header. Be explicit here.
+ALLOWED_ORIGINS = [
+    "https://zero-knowledge-system.vercel.app",  # ← Vercel production domain
+    "http://localhost:5173",                      # ← Vite dev server
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For prototype, allow all
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # ──────────────────────────────────────────────
@@ -69,6 +78,12 @@ def generate_merkle_node(left: str, right: str) -> str:
 # ──────────────────────────────────────────────
 # Routes
 # ──────────────────────────────────────────────
+
+@app.get("/health")
+async def health_check():
+    """Render health-check endpoint. Must return 2xx for the service
+    to be considered alive. Keep it lightweight — no DB calls."""
+    return {"status": "ok"}
 
 @app.get("/api/ledger")
 async def get_ledger():

@@ -2,6 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { Shield, CheckCircle, Clock, XCircle, Activity, Lock, Database, UserCheck, ToggleRight, ToggleLeft, ShieldAlert, ShieldCheck, AlertOctagon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// ── Production API base URL ──────────────────────────────────────
+const API = 'https://trustlink-zk.onrender.com';
+
+/**
+ * fetchWithRetry
+ * Wraps the native fetch() with exponential back-off retry logic.
+ * Automatically retries on network errors and on 502/503 responses
+ * (Render free-tier cold-start). Logs a "waking up" message so the
+ * user knows what's happening instead of seeing an instant error.
+ *
+ * @param {string}        url      - Full request URL
+ * @param {RequestInit}  [options] - Standard fetch options (method, headers, body, …)
+ * @param {number}       [retries] - Maximum retry attempts (default 4)
+ * @param {number}       [backoff] - Base back-off in ms; doubles each attempt (default 2000)
+ * @param {Function}     [onRetry] - Optional callback(attempt, maxRetries) for UI feedback
+ * @returns {Promise<Response>}
+ */
+async function fetchWithRetry(url, options = {}, retries = 4, backoff = 2000, onRetry) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const res = await fetch(url, options);
+            // 502/503 = Render is still waking up — retry
+            if ((res.status === 502 || res.status === 503) && attempt < retries) {
+                const wait = backoff * (attempt + 1);
+                if (onRetry) onRetry(attempt + 1, retries);
+                await new Promise(r => setTimeout(r, wait));
+                continue;
+            }
+            return res;
+        } catch (err) {
+            // Network error (no connection, CORS pre-flight rejected, DNS failure)
+            if (attempt >= retries) throw err;
+            const wait = backoff * (attempt + 1);
+            if (onRetry) onRetry(attempt + 1, retries);
+            await new Promise(r => setTimeout(r, wait));
+        }
+    }
+}
+
 const CitizenWallet = () => {
     const [requests, setRequests] = useState([]);
     const [activeVerifications, setActiveVerifications] = useState([]);
@@ -17,8 +56,8 @@ const CitizenWallet = () => {
     const fetchData = async () => {
         try {
             const [reqRes, ledgerRes] = await Promise.all([
-                fetch('http://localhost:8000/api/pending-requests', 'https://trustlink-zk.onrender.com/api/pending-requests'),
-                fetch('http://localhost:8000/api/ledger', 'https://trustlink-zk.onrender.com/api/ledger')
+                fetchWithRetry(`${API}/api/pending-requests`),
+                fetchWithRetry(`${API}/api/ledger`)
             ]);
             const reqData = await reqRes.json();
             setRequests(reqData.requests || []);
@@ -77,29 +116,48 @@ const CitizenWallet = () => {
         });
         setTimeout(async () => {
             try {
-                const res = await fetch('http://localhost:8000/api/generate-proof', 'https://trustlink-zk.onrender.com/api/generate-proof', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ request_id: activeRequest.id, consent_payload: consentSettings, is_malicious: isAttackMode })
-                });
+                const res = await fetchWithRetry(
+                    `${API}/api/generate-proof`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            request_id: activeRequest.id,
+                            consent_payload: consentSettings,
+                            is_malicious: isAttackMode
+                        })
+                    },
+                    /* retries */ 3,
+                    /* backoff  */ 2000,
+                    (attempt, max) => setLogs(prev => [
+                        ...prev,
+                        `⏳ Backend waking up… retry ${attempt}/${max}`
+                    ])
+                );
                 const data = await res.json();
                 setProofResult(data);
                 setProofState(data.is_valid ? 'success' : 'fraud');
                 fetchData();
-            } catch (err) { setProofState('idle'); }
+            } catch (err) {
+                console.error('generate-proof failed after retries:', err);
+                setProofState('idle');
+            }
         }, 3000);
     };
 
     const handleRevoke = async (txHash) => {
         setIsRevoking(txHash);
         try {
-            await fetch('http://localhost:8000/api/revoke-access', 'https://trustlink-zk.onrender.com/api/revoke-access', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tx_hash: txHash })
-            });
+            await fetchWithRetry(
+                `${API}/api/revoke-access`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tx_hash: txHash })
+                }
+            );
             await fetchData();
-        } catch (err) { console.error("Failed to revoke", err); }
+        } catch (err) { console.error('Failed to revoke:', err); }
         finally { setIsRevoking(false); }
     };
 

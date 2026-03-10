@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: trustlink-zk
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 8000
+    healthCheckPath: /health
+    # Render free tier: the service sleeps after inactivity.
+    # The frontend fetchWithRetry() wrapper handles the cold-start
+    # 502/503 responses with exponential back-off (up to ~8 s wait).
