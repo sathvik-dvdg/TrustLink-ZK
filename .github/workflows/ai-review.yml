@@ -6,13 +6,8 @@ on:
 
 jobs:
   call-review:
-    # This calls your central reusable template
     uses: sathvik-dvdg/ai-code-review-workflows/.github/workflows/gemini-review.yml@main
-    
-    # These permissions allow the AI to read your code and write the review comment
     permissions:
       contents: read
       pull-requests: write
-    
-    # 'inherit' automatically passes all secrets (like GEMINI_API_KEY) to the template
     secrets: inherit
