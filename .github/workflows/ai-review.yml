@@ -4,10 +4,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   review:
     uses: sathvik-dvdg/ai-code-review-workflows/.github/workflows/gemini-review.yml@main
