@@ -1,0 +1,10 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    uses: sathvik-dvdg/ai-code-review-workflows/.github/workflows/gemini-review.yml@main
+    secrets: inherit
