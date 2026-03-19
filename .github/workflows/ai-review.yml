@@ -2,9 +2,15 @@ name: AI Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize]
+
+# 🚀 ADD THIS BLOCK TO GRANT PERMISSIONS
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
-  review:
+  call-review:
     uses: sathvik-dvdg/ai-code-review-workflows/.github/workflows/gemini-review.yml@main
-    secrets: inherit
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
